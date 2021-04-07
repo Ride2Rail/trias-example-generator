@@ -3,6 +3,9 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# ignore files
+xml_examples
+
 # Intellij Idea
 .idea
 
