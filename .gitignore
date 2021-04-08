@@ -4,8 +4,11 @@ __pycache__/
 *$py.class
 
 # ignore files
-xml_examples
-
+xml_examples/example-offers.xml
+xml_examples/basic_examples/*
+xml_examples/basic_examples_TSP
+xml_examples/RS_examples
+xml_examples/RS_examples_TSP
 # Intellij Idea
 .idea
 
