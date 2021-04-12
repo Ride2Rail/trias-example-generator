@@ -120,7 +120,7 @@ add_rs_leg(xmpl_trip, rs_dict=rs_dict1, ns3_prefix=ns3_prefix)
 print(etree.tostring(xmpl_trip, encoding="unicode", pretty_print=True))
 
 rs_dict2 = {
-    'LegId': 'RS-leg-id-01',
+    'LegId': 'RS-leg-id-03',
     'LegStart': None,
     'LegEnd': None,
     'LegStartRef': 'http://it2rail.org/infrastructure/tmb/1:par_6_92-B',
@@ -145,13 +145,13 @@ xmpl_trip = deepcopy(example_root.xpath(".//ns3:ResultId[text() = '728f1f64-2d90
                                         namespaces=NS)[0].getparent()[1])
 # 2 legs replaced
 print(xmpl_trip.tag == '{http://www.vdv.de/trias}Trip')
-add_rs_leg(xmpl_trip, rs_dict=rs_dict2, ns3_prefix=ns3_prefix)
+add_rs_leg(xmpl_trip, rs_dict=rs_dict3, ns3_prefix=ns3_prefix)
 print(etree.tostring(xmpl_trip, encoding="unicode", pretty_print=True))
 
 
 
 rs_dict10 = {
-    'LegId': 'RS-leg-id-01',
+    'LegId': 'RS-leg-id-10',
     'LegStart': None,
     'LegEnd': None,
     'LegStartRef': 'A=2@O=Málaga, Calle Quasimodo 13-5@X=-4465409@Y=36709393@u=0@U=103@L=981016558@',
