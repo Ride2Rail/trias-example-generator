@@ -234,10 +234,10 @@ def generate_value(val_dict, factor):
 
 # time.mktime(time.strptime('1980-1-1T00:00:00.000Z', '%Y-%m-%dT%H:%M:%S.%fZ'))
 
-def enrich_trip_restult(trip_result,
-                        modes_factors_dict=modes_factors_dict,
-                        factor_probabilitites_dict=factor_probabilitites_dict,
-                        factors_values_dict=factors_values_dict):
+def enrich_trip_result(trip_result,
+                       modes_factors_dict=modes_factors_dict,
+                       factor_probabilitites_dict=factor_probabilitites_dict,
+                       factors_values_dict=factors_values_dict):
     for leg in trip_result.findall('.//ns3:TripLeg', NS):
         # check if it is not a walk
         transp_mode = leg.find(".//ns3:IndividualMode", NS)
@@ -287,7 +287,7 @@ def generate_examples(path_dict, probabilities=[0.25, 0.5, 0.75]):
                 example_root = etree.parse(file, parser=parser).getroot()
                 change_append_user_id(example_root, '-v-' + str(enriched_ver))
                 for trip_res in example_root.findall(".//ns3:TripResult", NS):
-                    enrich_trip_restult(trip_res)
+                    enrich_trip_result(trip_res)
                 path = path_dict['generation_dir'] + path_dict['xml_name']
                 if path_dict['generation_dir'] == '../output_files/basic_examples_TSP/example_':
                     path = path_dict['generation_dir'] + str(i) + "/" + path_dict['xml_name']
