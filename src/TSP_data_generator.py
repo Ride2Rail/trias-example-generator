@@ -2,7 +2,7 @@
 #  this files serves as generator of TSP data for the TRIAS XML files
 #  it automatically generates TSP data for all the examples in the "single_mobility_request_examples" directory
 #
-
+import sys
 from lxml import etree
 import random
 from datetime import datetime
@@ -128,7 +128,11 @@ factors_values_dict = {
 
 parser = etree.XMLParser(remove_blank_text=True, recover=True, encoding='utf-8')
 
+def err_print(text):
+    print(text, file=sys.stderr)
 
+
+# creates a subelement with given text
 def create_SubElement(_parent, _tag, attrib={}, _text=None, nsmap=None, **_extra):
     result = etree.SubElement(_parent, _tag, attrib, nsmap, **_extra)
     result.text = _text
@@ -136,7 +140,6 @@ def create_SubElement(_parent, _tag, attrib={}, _text=None, nsmap=None, **_extra
 
 
 # this code adds tsp_info to an element
-# TODO: maybe check if the leg_id is string
 def add_TSP_info(_code=None, _legid=None, _value=None, _parent_el=None, nsmap=None, attrib={}, **_extra):
     parent_elem = create_SubElement(_parent_el, '{http://shift2rail.org/project/coactive}OfferItemContext', nsmap=nsmap)
     if _legid is not None:
@@ -145,22 +148,7 @@ def add_TSP_info(_code=None, _legid=None, _value=None, _parent_el=None, nsmap=No
     create_SubElement(parent_elem, "{http://shift2rail.org/project/coactive}Value", _text=str(_value), nsmap=nsmap)
     return parent_elem
 
-
-# # create a copy of ticket
-# my_ticket = etree.fromstring(etree.tostring(sel_merged_trips[0][0][2][1]))
-# my_tripres = etree.fromstring(etree.tostring(sel_merged_trips[0][0]))
-#
-# my_legid = 'ID77bc319f-131b-4e14-bac2-3caea1b12b2c'
-#
-#     oic_1 = add_TSP_info(_code = "silence_area_presence", _legid = my_legid, _value = 1, nsmap = NS)
-#     oic_2 = add_TSP_info(_code = "user_feedback", _legid = my_legid, _value = 3.5, nsmap = NS)
-#
-# my_tick_exten = my_ticket.find(".//ns3:Extension", namespaces = NS)
-# my_tick_exten.append(oic_1)
-# my_tick_exten.append(oic_2)
-# print_xml(my_tick_exten)
-
-
+# appends user id and if needed changes it to "Traveller"
 def change_append_user_id(gg_parent, text_append):
     for el in gg_parent.findall(".//coactive:UserId", NS):
         if el.getparent().tag == "{http://shift2rail.org/project/coactive}User" or \
@@ -180,20 +168,10 @@ def get_mode(trip_res, legid):
         if walk:
             return walk[0]
         else:
-            print('mode not found', file=sys.stderr)
+            err_print('mode ' + mode + ' not found')
             return 0
 
 
-# get_mode(trip_res, 'ID03a11bae-d9b2-4690-9494-c5bc60cb521f')
-#
-# for lid in trip_res.findall(".//ns3:LegId",NS):
-#     print(lid.text)
-
-
-# stop_list = []
-# for text_el in trip_res_xmpl.findall(".//ns3:Text", NS):
-#     if text_el.getparent().tag == "{http://www.vdv.de/trias}StopPointName" or text_el.getparent().tag == "{http://www.vdv.de/trias}LocationName":
-#         stop_list.append(text_el.text)
 
 # if the time is negative add it to unix time
 def datetime_to_unix(time_in_seconds):
@@ -203,6 +181,7 @@ def datetime_to_unix(time_in_seconds):
         return datetime.utcfromtimestamp(time_in_seconds)
 
 
+# helping function for random date generation
 # inspired by
 # https://stackoverflow.com/questions/553303/generate-a-random-date-between-two-other-dates
 def my_str_time_prop(start, end, prop, format, ):
@@ -215,7 +194,7 @@ def my_str_time_prop(start, end, prop, format, ):
     form_time = datetime_to_unix(ptime)
     return form_time.strftime(format)[0:-4] + "Z"
 
-
+# generate random date
 def random_date(start, end, prop, format='%Y-%m-%dT%H:%M:%S.%fZ'):
     return my_str_time_prop(start, end, prop, format)
 
@@ -229,11 +208,12 @@ def generate_value(val_dict, factor):
     elif i_list[0] == 'date':
         return random_date(i_list[1], i_list[2], random.random())
     else:
-        print('unsupported type')
+        err_print('unsupported type of date')
 
 
 # time.mktime(time.strptime('1980-1-1T00:00:00.000Z', '%Y-%m-%dT%H:%M:%S.%fZ'))
 
+# enricher for trip result
 def enrich_trip_result(trip_result,
                        modes_factors_dict=modes_factors_dict,
                        factor_probabilitites_dict=factor_probabilitites_dict,
@@ -251,7 +231,7 @@ def enrich_trip_result(trip_result,
         # if the mode is unknown skip the trip_leg
         if transp_mode == "unknown":
             continue
-        # dictionary of generated values
+        # generate the factor values and add them to dictionary
         tmp_fact_val_dict = {}
         for factor in modes_factors_dict[transp_mode]:
             if random.uniform(0, 1) < factor_probabilitites_dict[factor]:
@@ -259,7 +239,7 @@ def enrich_trip_result(trip_result,
         # find assigned travelEpisodeId
         trip_res = leg.getparent().getparent()
         if trip_res.tag != "{http://www.vdv.de/trias}TripResult":
-            print('Parent of tripleg with legid: ' + legid + ' is not a TripResult!', file=sys.stderr)
+            err_print('Parent of tripleg with legid: ' + legid + ' is not a TripResult!')
             continue
         offerid = trip_res.xpath(".//coactive:TravelEpisodeId[text() = '" + legid + "']",
                                  namespaces=NS)[0]
@@ -267,7 +247,7 @@ def enrich_trip_result(trip_result,
         extension = offerid.getparent().getparent()
         # check if extension is really an extension
         if extension.tag != '{http://www.vdv.de/trias}Extension':
-            print('Element under legid:' + legid + 'is not an extension!', file=sys.stderr)
+            err_print('Element under legid:' + legid + 'is not an extension!')
             continue
         # add generated data to the leg
         for code, val in tmp_fact_val_dict.items():
@@ -279,8 +259,7 @@ def generate_examples(path_dict, probabilities=[0.25, 0.5, 0.75]):
     for enriched_ver in range(1, 4):
         for key in factor_probabilitites_dict.keys():
             factor_probabilitites_dict[key] = probabilities[enriched_ver - 1]
-        # directory with single mobility request examples
-        # add sing_mob_exmpl_10.xml to the end
+        # append file name to the end of the string
         for i in path_dict['file_num']:
             file = path_dict['example_path'] + str(i) + '.xml'
             if os.path.isfile(file):
@@ -295,7 +274,7 @@ def generate_examples(path_dict, probabilities=[0.25, 0.5, 0.75]):
                                                       pretty_print=True, xml_declaration=True, encoding='UTF-8',
                                                       standalone='yes')
             else:
-                print(file + 'seems not like a valid file', file=sys.stderr)
+                err_print('File' + file + 'seems not like a valid file')
 
 
 ######################################################################################
@@ -319,13 +298,15 @@ rs_examples = {
     'xml_name': 'rs_tsp_example_'
 }
 
+factor_probability_values = [0.25, 0.5, 0.75]
+
 # set seed
 random.seed(123)
 
 # generate TSP data
-generate_examples(all_examples)
+generate_examples(all_examples, factor_probability_values)
 # generate ridesharing TSP data
-generate_examples(rs_examples)
+generate_examples(rs_examples, factor_probability_values)
 
 # inverse map of factors for each transport mode
 # imap = {

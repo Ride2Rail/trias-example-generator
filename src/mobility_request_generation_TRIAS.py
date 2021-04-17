@@ -170,7 +170,7 @@ def change_user_id(gg_parent, example_id, user_str = "8d6ba330-fefd-44ef-87a5-ex
            el.getparent().tag == "{http://shift2rail.org/project/coactive}Traveller":
             el.text = user_str + str(example_id)
 
-# test stop ref list
+# test for stop ref list
 # my_loc_list = get_loc_list(sel_merged_trips[0])
 # stop_ref_list = get_stop_ref_list(my_loc_list, stop_dict)
 # parent = create_Locations_element(broader_test_stop_list)

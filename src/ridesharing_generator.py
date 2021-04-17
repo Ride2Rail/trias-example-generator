@@ -11,28 +11,6 @@ NS = {'coactive': 'http://shift2rail.org/project/coactive', 'ns2': 'http://www.s
       'ns5': 'http://www.ifopt.org.uk/acsb', 'ns6': 'http://www.ifopt.org.uk/ifopt',
       'ns7': 'http://datex2.eu/schema/1_0/1_0', 'xsi': 'http://www.w3.org/2001/XMLSchema-instance'}
 
-# Dictionary containing data for ridesharing
-rs_dict = {
-    'LegId': 'RS-leg-id-01',
-    'LegStart': None,
-    'LegEnd': None,
-    'LegStartRef': 'http://it2rail.org/infrastructure/tmb/1:par_6_92-B',
-    'LegStopRef': 'http://it2rail.org/infrastructure/tmb/1:par_5_46-B',
-    'start_point_loc_text': 'MENDEZ ALVARO',
-    'end_point_loc_text': 'Méndez Álvaro-Estación Sur',
-    'Service': None,
-    'TimeWindowStart': '2020-11-27T11:00:00.000Z',
-    'TimeWindowEnd': '2020-11-27T12:10:00.000Z',
-    'Duration': 'PT1H10M',
-    'TravelExpertId': 'rs_expert',
-    'OperatorRef': 'RSOperator_1',
-    'Name': 'Driver_Joe1',
-    'InfoUrl': None,
-    'CarModelText': 'BMW_X5_xDrive40e',
-    'CarURL': 'https://en.wikipedia.org/wiki/BMW_X5_(F15)#X5_xDrive40e'
-}
-
-
 # creates an subelement with text
 def create_SubElement(_parent, _tag, attrib={}, _text=None, nsmap=None, **_extra):
     result = etree.SubElement(_parent, _tag, attrib, nsmap, **_extra)
@@ -119,7 +97,7 @@ print(xmpl_trip.tag == '{http://www.vdv.de/trias}Trip')
 add_rs_leg(xmpl_trip, rs_dict=rs_dict1, ns3_prefix=ns3_prefix)
 print(etree.tostring(xmpl_trip, encoding="unicode", pretty_print=True))
 
-rs_dict2 = {
+rs_dict3 = {
     'LegId': 'RS-leg-id-03',
     'LegStart': None,
     'LegEnd': None,
