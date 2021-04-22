@@ -9,22 +9,6 @@ import sys
 import pandas as pd
 from statistics import mean
 
-# load the XML
-parser = etree.XMLParser(remove_blank_text=True, recover=True, encoding='utf-8')
-trias_big_root = etree.parse("../xml_examples/example-offers.xml", parser=parser).getroot()
-
-# used namespaces
-NS = {'coactive': 'http://shift2rail.org/project/coactive', 'ns2': 'http://www.siri.org.uk/siri',
-      'ns3': 'http://www.vdv.de/trias',
-      'ns5': 'http://www.ifopt.org.uk/acsb', 'ns6': 'http://www.ifopt.org.uk/ifopt',
-      'ns7': 'http://datex2.eu/schema/1_0/1_0', 'xsi': 'http://www.w3.org/2001/XMLSchema-instance'}
-
-# find all trips
-trip_big_res_list = trias_big_root.findall(".//ns3:Trip", NS)
-
-trip_res_list = trias_big_root.findall(".//ns3:TripResult", NS)
-
-
 # function to extract start time
 def extract_start_time(trip):
     trip_time = trip.xpath(".//ns3:StartTime/text()", namespaces=NS)
@@ -39,24 +23,8 @@ def time_within_range(trip_1, trip_2) -> bool:
     trip_2_start = extract_start_time(trip_2)
     return abs((trip_1_start - trip_2_start)).total_seconds() < 3600
 
-
-# etract list of stops from the data
-def extract_stops(trip):
-    # trip.findall(".//ns3:StopPointName/ns3:Text", NS)
-    stop_list = trip.findall(".//ns3:StopPointRef", NS)
-    stop_text_list = []
-    for stop in stop_list:
-        stop_text = stop.getnext()
-        if stop_text.tag == '{http://www.vdv.de/trias}LocationName' or \
-                stop_text.tag == '{http://www.vdv.de/trias}StopPointName':
-            stop_text_list.append(stop_text.xpath(".//ns3:Text", namespaces=NS)[0])
-        else:
-            print('next element not a LocationName or a StopPointName', file=sys.stderr)
-    return stop_text_list
-
-
 # etract list of stops from the data - other way
-def extract_stops_v2(trip):
+def extract_stops(trip):
     stop_list = trip.findall(".//ns3:Text", NS)
     stop_text_list = []
     for stop in stop_list:
@@ -69,57 +37,11 @@ def extract_stops_v2(trip):
 
 # check if start and end stop are equal
 def start_stop_equal(trip_1, trip_2) -> bool:
-    trip_1_stops = extract_stops_v2(trip_1)
-    trip_2_stops = extract_stops_v2(trip_2)
+    trip_1_stops = extract_stops(trip_1)
+    trip_2_stops = extract_stops(trip_2)
     if len(trip_1_stops) < 2 or len(trip_2_stops) < 2:  # min(len(trip_1_stops), len(trip_2_stops)) < 2
         return False
     return trip_1_stops[0].text == trip_2_stops[0].text and trip_1_stops[-1].text == trip_2_stops[-1].text
-
-
-merged_trip_res = [[trip_res_list[0]]]
-# merge the trips having similar start time and same first and last stop into a list
-for trip_res_1 in trip_res_list[1:]:
-    merged = False
-    for merged_group in merged_trip_res:
-        trip_res_2 = merged_group[0]
-        if start_stop_equal(trip_res_1[1], trip_res_2[1]) and time_within_range(trip_res_1[1], trip_res_2[1]):
-            merged_group.append(trip_res_1)
-            merged = True
-            break
-    if not merged:
-        merged_trip_res.append([trip_res_1])
-
-# selected_merged_trips = [6, 18, 21, 26, 30, 33, 45, 67, 107]
-selected_merged_trips = [4, 6, 16, 17, 24, 29, 38, 41, 60, 63, 11]
-
-sel_merged_trips = [merged_trip_res[i] for i in selected_merged_trips]
-
-# print(etree.tostring(sel_merged_trips[0][0], pretty_print=True).decode("utf-8"))
-
-###
-# Adding locations to XML
-loc_list = trias_big_root.xpath(".//ns3:Locations", namespaces=NS)[0]
-
-# find all locations
-location_dict = dict()
-for loc in loc_list:
-    location = loc.find(".//ns3:StopPointRef", namespaces=NS)
-    if location is None:
-        location = loc.find(".//ns3:AddressCode", namespaces=NS)
-    # if there is a stop ref and it is not in location_dict, add the location to the dict
-    if location is not None and not location.text in location_dict:
-        location_dict[location.text] = loc
-
-#  Old version of get_loc_list which shuffled stoppointrefs and addresses
-# def get_loc_list(trip_list):
-#     stop_ref_list = list()
-#     for trip_res in trip_list:
-#         trip1 = trip_res.find(".//ns3:Trip", namespaces=NS)
-#         trip_stops = trip1.findall(".//ns3:StopPointRef", namespaces=NS) + \
-#                      trip1.findall(".//ns3:AddressRef", namespaces=NS)  # this is the new code
-#         for trip_stop in trip_stops:
-#             stop_ref_list.append(trip_stop.text)
-#     return stop_ref_list
 
 
 def get_loc_list(trip_list):
@@ -175,9 +97,74 @@ def change_user_id(gg_parent, example_id, user_str = "8d6ba330-fefd-44ef-87a5-ex
 # stop_ref_list = get_stop_ref_list(my_loc_list, stop_dict)
 # parent = create_Locations_element(broader_test_stop_list)
 
+
+# load the XML
+parser = etree.XMLParser(remove_blank_text=True, recover=True, encoding='utf-8')
+trias_big_root = etree.parse("../xml_examples/example-offers.xml", parser=parser).getroot()
+
+# used namespaces
+NS = {'coactive': 'http://shift2rail.org/project/coactive', 'ns2': 'http://www.siri.org.uk/siri',
+      'ns3': 'http://www.vdv.de/trias',
+      'ns5': 'http://www.ifopt.org.uk/acsb', 'ns6': 'http://www.ifopt.org.uk/ifopt',
+      'ns7': 'http://datex2.eu/schema/1_0/1_0', 'xsi': 'http://www.w3.org/2001/XMLSchema-instance'}
+
+# get list of all Trips
+trip_big_res_list = trias_big_root.findall(".//ns3:Trip", NS)
+
+# get list of all TripResults
+trip_res_list = trias_big_root.findall(".//ns3:TripResult", NS)
+
+
+merged_trip_res = [[trip_res_list[0]]]
+# merge the trips having similar start time and same first and last stop into a list
+for trip_res_1 in trip_res_list[1:]:
+    merged = False
+    for merged_group in merged_trip_res:
+        trip_res_2 = merged_group[0]
+        if start_stop_equal(trip_res_1[1], trip_res_2[1]) and time_within_range(trip_res_1[1], trip_res_2[1]):
+            merged_group.append(trip_res_1)
+            merged = True
+            break
+    if not merged:
+        merged_trip_res.append([trip_res_1])
+
+# select the single mobility requests
+selected_merged_trips = [4, 6, 16, 17, 24, 29, 38, 41, 60, 63, 11]
+
+# create list of merged trips
+sel_merged_trips = [merged_trip_res[i] for i in selected_merged_trips]
+
+###
+
+# Obtain list of all locations
+loc_list = trias_big_root.xpath(".//ns3:Locations", namespaces=NS)[0]
+
+# create a dictionary of locations - K: StopPointRef or AddressCode text, V: StopPointRef or AddressCode element
+location_dict = dict()
+for loc in loc_list:
+    location = loc.find(".//ns3:StopPointRef", namespaces=NS)
+    if location is None:
+        location = loc.find(".//ns3:AddressCode", namespaces=NS)
+    # if there is a stop ref and it is not in location_dict, add the location to the dict
+    if location is not None and not location.text in location_dict:
+        location_dict[location.text] = loc
+
+#  Old version of get_loc_list which shuffled stoppointrefs and addresses
+# def get_loc_list(trip_list):
+#     stop_ref_list = list()
+#     for trip_res in trip_list:
+#         trip1 = trip_res.find(".//ns3:Trip", namespaces=NS)
+#         trip_stops = trip1.findall(".//ns3:StopPointRef", namespaces=NS) + \
+#                      trip1.findall(".//ns3:AddressRef", namespaces=NS)  # this is the new code
+#         for trip_stop in trip_stops:
+#             stop_ref_list.append(trip_stop.text)
+#     return stop_ref_list
+
+
 ###
 # Save the XML
 
+# create the main structure of the XML file
 ggg_parent = etree.Element('{http://www.vdv.de/trias}Trias', nsmap=NS)
 gg_parent = etree.Element('{http://www.vdv.de/trias}ServiceDelivery', nsmap=NS)
 g_parent = etree.Element('{http://www.vdv.de/trias}DeliveryPayload', nsmap=NS)
@@ -266,7 +253,6 @@ if merged_trip_stats:
     myvar = pd.DataFrame(mydataset)
 
     myvar.to_csv("../xml_examples/sing_mob_stats.csv", sep=";", decimal=",")
-    # myvar.to_csv("../output_files/sing_mob_stats.csv", sep = ";", decimal =",")
 
     # count mean number of tickets per trip:
     mer_count_list = []
