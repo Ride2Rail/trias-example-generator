@@ -1,5 +1,8 @@
 from lxml import etree
 from sys import stdout, stdin
+import os
+
+
 
 def print_TRIAS(FileTRIAS):
     # used namespaces
@@ -93,4 +96,10 @@ def print_TRIAS(FileTRIAS):
         trip_i = trip_i + 1
     return 0
 
-print_TRIAS("../xml_examples/basic_examples/sing_mob_exmpl_9.xml")
+directory = "/home/lubos/Downloads/20210518-trias_r2r_examples"
+
+files = os.listdir(directory)
+for file in files:
+    print("****************** File = " + file + "******************" )
+    print_TRIAS(directory +"/" +file)
+    print("************************************")

@@ -10,6 +10,7 @@ from datetime import timedelta
 import os
 from os import path
 from copy import deepcopy
+from lxml import objectify
 
 ####
 # as first create a dictionary for each transport mode with the available factors
@@ -52,7 +53,6 @@ factor_probabilitites_dict = {
     'driver_license_issue_date': 0.25,
     'repeated_trip': 0.25
 }
-
 
 factors_modes_dict = {
     'likelihood_of_delays': 'all',
@@ -234,7 +234,7 @@ def enrich_trip_result(trip_result,
         transp_mode = leg.find(".//ns3:IndividualMode", NS)
         if transp_mode is not None:
             transp_mode = transp_mode.text
-            if transp_mode == 'walk':
+            if transp_mode == 'walk' or transp_mode == 'cycle':
                 continue
         legid = leg[0].text
         if transp_mode is None:
@@ -244,6 +244,9 @@ def enrich_trip_result(trip_result,
             continue
         # generate the factor values and add them to dictionary
         tmp_fact_val_dict = {}
+        if not transp_mode in modes_factors_dict:
+            err_print("Transport mode: '" + transp_mode + "' is not defined in probability dictionaries")
+            continue
         for factor in modes_factors_dict[transp_mode]:
             if random.uniform(0, 1) < factor_probabilitites_dict[factor]:
                 tmp_fact_val_dict[factor] = generate_value(factors_values_dict, factor)
@@ -265,8 +268,7 @@ def enrich_trip_result(trip_result,
             add_TSP_info(_code=code, _legid=legid, _value=val, _parent_el=extension, nsmap=NS)
 
 
-def generate_examples(path_dict, probabilities=[0.25, 0.5, 0.75]):
-
+def generate_examples(path_dict, probabilities=[0.25, 0.5, 0.75], subfolders = True):
     for enriched_ver in range(len(probabilities)):
         # change the dictionary probabilities to the provided probabilities
         for key in factor_probabilitites_dict.keys():
@@ -285,14 +287,15 @@ def generate_examples(path_dict, probabilities=[0.25, 0.5, 0.75]):
                 # concatenate the path
                 path = path_dict['generation_dir'] + path_dict['xml_name']
                 # split into subfolders if the path are basic examples
-                if path_dict['generation_dir'] == all_examples['generation_dir']:
+                if subfolders:
                     path = path_dict['generation_dir'] + str(i) + "/" + path_dict['xml_name']
+                objectify.deannotate(example_root, cleanup_namespaces=True)
                 # write the tree into XML with concatenating the name
                 etree.ElementTree(example_root).write(path + str(i) + '_v_' + str(enriched_ver + 1) + '.xml',
                                                       pretty_print=True, xml_declaration=True, encoding='UTF-8',
                                                       standalone='yes')
             else:
-                err_print('File' + file + 'seems not like a valid file')
+                err_print('File: ' + file + ' seems not like a valid file')
 
 
 ######################################################################################
@@ -306,10 +309,17 @@ if not path.isdir(examples_dir):
     exit()
 
 # for all examples
-all_examples = {
-    'example_path': examples_dir + 'basic_examples/sing_mob_exmpl_',
-    'file_num': list(range(0, 11)),
-    'generation_dir': examples_dir + 'basic_examples_TSP/example_',
+# all_examples = {
+#     'example_path': examples_dir + 'basic_examples/sing_mob_exmpl_',
+#     'file_num': list(range(0, 11)),
+#     'generation_dir': examples_dir + 'basic_examples_TSP/example_',
+#     'xml_name': 'enriched_example_'
+# }
+
+hacon_examples = {
+    'example_path': examples_dir + 'hacon_examples/r2r_example_',
+    'file_num': list(range(1,4)) + list(range(5,10)),
+    'generation_dir': examples_dir + 'hacon_enriched_examples/',
     'xml_name': 'enriched_example_'
 }
 
@@ -321,49 +331,15 @@ rs_examples = {
     'xml_name': 'rs_tsp_example_'
 }
 
+
+
 factor_probability_values = [0.25, 0.5, 0.75]
 
 # set seed
 random.seed(123)
 
 # generate TSP data
-generate_examples(all_examples, factor_probability_values)
+generate_examples(hacon_examples, factor_probability_values, subfolders=False)
 # generate ridesharing TSP data
-generate_examples(rs_examples, factor_probability_values)
+# generate_examples(rs_examples, factor_probability_values, subfolders=False)
 
-# inverse map of factors for each transport mode
-# imap = {
-#     'bus': ['likelihood_of_delays', 'last_minute_changes', 'frequency_of_service', 'user_feedback', 'cleanliness',
-#             'seating_quality', 'space_available', 'likelihood_of_delays', 'last_minute_changes', 'frequency_of_service',
-#             'user_feedback', 'cleanliness', 'seating_quality', 'space_available', 'privacy_level', 'bike_on_board',
-#             'internet_availability', 'plugs_or_charging_points', 'safety_features', 'passenger_feedback'],
-#     'tram': ['likelihood_of_delays', 'last_minute_changes', 'frequency_of_service', 'user_feedback', 'cleanliness',
-#              'seating_quality', 'space_available', 'likelihood_of_delays', 'last_minute_changes', 'frequency_of_service',
-#              'user_feedback', 'cleanliness', 'seating_quality', 'space_available', 'privacy_level', 'bike_on_board',
-#              'internet_availability', 'plugs_or_charging_points', 'safety_features', 'passenger_feedback'],
-#     'rail': ['likelihood_of_delays', 'last_minute_changes', 'frequency_of_service', 'user_feedback', 'cleanliness',
-#              'seating_quality', 'space_available', 'likelihood_of_delays', 'last_minute_changes', 'frequency_of_service',
-#              'user_feedback', 'cleanliness', 'seating_quality', 'space_available', 'silence_area_presence',
-#              'privacy_level', 'bike_on_board', 'business_area_presence', 'internet_availability',
-#              'plugs_or_charging_points', 'safety_features', 'passenger_feedback'],
-#     'metro': ['likelihood_of_delays', 'last_minute_changes', 'frequency_of_service', 'user_feedback', 'cleanliness',
-#               'seating_quality', 'space_available', 'likelihood_of_delays', 'last_minute_changes',
-#               'frequency_of_service', 'user_feedback', 'cleanliness', 'seating_quality', 'space_available',
-#               'privacy_level', 'bike_on_board', 'internet_availability', 'plugs_or_charging_points',
-#               'safety_features', 'passenger_feedback'],
-#     'air': ['likelihood_of_delays', 'last_minute_changes', 'frequency_of_service', 'user_feedback', 'cleanliness',
-#             'seating_quality', 'space_available', 'likelihood_of_delays', 'last_minute_changes', 'frequency_of_service',
-#             'user_feedback', 'cleanliness', 'seating_quality', 'space_available', 'privacy_level', 'bike_on_board',
-#             'business_area_presence', 'internet_availability', 'plugs_or_charging_points', 'safety_features', 'passenger_feedback'],
-#     'urbanRail': ['likelihood_of_delays', 'last_minute_changes', 'frequency_of_service', 'user_feedback', 'cleanliness',
-#                   'seating_quality', 'space_available', 'likelihood_of_delays', 'last_minute_changes',
-#                   'frequency_of_service', 'user_feedback', 'cleanliness', 'seating_quality', 'space_available',
-#                   'privacy_level', 'bike_on_board', 'internet_availability', 'plugs_or_charging_points',
-#                   'safety_features', 'passenger_feedback'],
-#     'others-drive-car': ['likelihood_of_delays', 'last_minute_changes', 'frequency_of_service', 'user_feedback',
-#                      'cleanliness', 'seating_quality', 'space_available', 'likelihood_of_delays', 'last_minute_changes',
-#                      'frequency_of_service', 'user_feedback', 'cleanliness', 'seating_quality', 'space_available',
-#                      'privacy_level', 'bike_on_board', 'internet_availability', 'plugs_or_charging_points',
-#                      'number_of_persons_sharing_trip', 'shared_with_other_passengers', 'safety_features', 'vehicle_age',
-#                      'passenger_feedback', 'certified_driver', 'driver_license_issue_date', 'repeated_trip']
-# }
