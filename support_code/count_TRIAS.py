@@ -64,7 +64,7 @@ def count_elements(xml_root, em_obj_list, mode_count_list, ticket_count_list, ns
 
 parser = etree.XMLParser(remove_blank_text=True, recover=True, encoding='utf-8')
 
-xml_dir = "C:/Users/Milan/Desktop/FRI_work/Era/R2R/TRIAS_data/20210518-trias_r2r_examples/"
+xml_dir = "C:/Users/Milan/Desktop/FRI_work/Era/R2R/TRIAS_data/updated_ride2rail_examples/"
 xml_files = [xml_dir + x for x in os.listdir(xml_dir)]
 
 filenames = os.listdir(xml_dir)
@@ -79,8 +79,8 @@ ns_3_empty_hacon = get_ns_prefix(ns_dictionary,"http://shift2rail.org/project/")
 
 # create the dict for assembling the XML element counter objects
 ns_cnt_dict = {
-    "TripRequest":ns_3_empty_hacon,
-    "TripResponse":ns_3_empty_hacon,
+    "TripRequest": ns_3_empty_hacon,
+    "TripResponse": ns_3_empty_hacon,
     "TripResult": ns_3_val,
     'Trip': ns_3_val,
     'TripLeg': ns_3_val,
@@ -113,7 +113,7 @@ mydataset.update(tm_count_dict)
 
 myvar = pd.DataFrame(mydataset)
 
-myvar.to_csv("xml_examples/trip_hacon_stats.csv", sep=";", decimal=",")
+myvar.to_csv("xml_examples/trip_hacon_new_stats.csv", sep=";", decimal=",")
 
 
 

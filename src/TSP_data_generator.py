@@ -127,6 +127,7 @@ factors_values_dict = {
 parser = etree.XMLParser(remove_blank_text=True, recover=True, encoding='utf-8')
 
 
+# rewrite this to get error print
 def err_print(text):
     print(text, file=sys.stderr)
 
@@ -152,29 +153,11 @@ def add_TSP_info(_code=None, _legid=None, _value=None, _parent_el=None, nsmap=No
 
 # appends the text_append parameter to User or Traveller element's text
 def change_append_user_id(gg_parent, text_append):
-    for el in gg_parent.findall(".//coactive:UserId", NS):
+    for el in gg_parent.findall(".//coact"
+                                "ive:UserId", NS):
         if el.getparent().tag == "{http://shift2rail.org/project/coactive}User" or \
                 el.getparent().tag == "{http://shift2rail.org/project/coactive}Traveller":
             el.text = el.text + text_append
-
-
-# finds the mode of the leg which ID is provided as legid, inside a TripResult provided as a parameter trip_res
-# and returns it as a text
-# if the mode is not found, an error message is printed and 0 returned
-def get_mode(trip_res, legid):
-    # find the tripleg by the leg id
-    tripleg = trip_res.xpath(".//ns3:LegId[text() = '" + legid + "']", namespaces=NS)[0] \
-        .getparent()
-    mode = tripleg.findall(".//ns3:Mode/ns3:PtMode", NS)
-    if mode:
-        return mode[0]
-    else:
-        walk = tripleg.findall(".//ns3:Service/ns3:IndividualMode", NS)
-        if walk:
-            return walk[0]
-        else:
-            err_print('mode ' + mode + ' not found')
-            return 0
 
 
 # function to convert datetime to unix timestamp
@@ -218,57 +201,100 @@ def generate_value(val_dict, factor):
 
 # time.mktime(time.strptime('1980-1-1T00:00:00.000Z', '%Y-%m-%dT%H:%M:%S.%fZ'))
 
-# enricher for trip result
-# params:
-# @trip_result - TripResult element to work with
-# @modes_factors_dict - dictionary with modes (K) and factors (V)
-# @factor_probabilitites_dict - dictionary with factors (K) and corresponding probabilities (V)
-# @factors_values_dict - dictionary with factors (K) and corresponding domains and value ranges (V)
-def enrich_trip_result(trip_result,
-                       modes_factors_dict=modes_factors_dict,
-                       factor_probabilitites_dict=factor_probabilitites_dict,
-                       factors_values_dict=factors_values_dict):
-    # iterate over all legs of a tripresult
-    for leg in trip_result.findall('.//ns3:TripLeg', NS):
-        # if the mode is a walk skip the trip_leg
-        transp_mode = leg.find(".//ns3:IndividualMode", NS)
-        if transp_mode is not None:
-            transp_mode = transp_mode.text
-            if transp_mode == 'walk' or transp_mode == 'cycle':
+
+# returns transport mode for a given leg
+def get_transport_mode(leg):
+    # if the mode is a walk skip the trip_leg
+    transp_mode = leg.find(".//ns3:IndividualMode", NS)
+    if transp_mode is not None:
+        return transp_mode.text
+    # otherwise should be under PtMode
+    transp_mode = leg.find(".//ns3:PtMode", namespaces=NS)
+    if transp_mode is not None:
+        return transp_mode.text
+    else:
+        return None
+
+
+# returns dictionary of generated values for the given transport mode
+def generate_values_to_dict(transp_mode, modes_factors_dict, factor_probabilitites_dict, factors_values_dict):
+    # generate the factor values and add them to dictionary
+    tmp_fact_val_dict = {}
+    for factor in modes_factors_dict[transp_mode]:
+        if random.uniform(0, 1) < factor_probabilitites_dict[factor]:
+            tmp_fact_val_dict[factor] = generate_value(factors_values_dict, factor)
+    return tmp_fact_val_dict
+
+
+# returns true if the provided transport mode should be skipped
+# provides additional warnings
+def skip_transport_mode(transport_mode, leg_id):
+    if transport_mode is None:
+        err_print("Transport mode at leg: " + leg_id + " was not found under common elements (IndividualMode, PtMode)")
+        return True
+    # for these we do not generate
+    if transport_mode in ('unknown', 'walk', 'cycle'):
+        return True
+    # if the mode is undefined
+    elif transport_mode not in modes_factors_dict:
+        err_print("Transport mode " + transport_mode + " is not defined at leg id: " + leg_id )
+        return True
+
+
+# enriches the trip_result based on the provided dictionaries
+# if the legs reoccur in tickes, the generated values are the same
+def enrich_tickets_tripresult(trip_result, modes_factors_dict, factor_probabilitites_dict, factors_values_dict):
+    # dictionary storing probabilities for reoccuring legs in tickets
+    trip_generated_dict = {}
+    for trip_fare in trip_result.findall('.//ns3:TripFares', NS):
+        # for each tripfare check the ticket
+        for ticket in trip_fare.findall('.//ns3:Ticket', NS):
+            ticket_id = ticket.find('.//ns3:TicketId', NS)
+            if ticket_id is None:
+                err_print("Ticket has no TicketId!")
+            # skip meta tickets
+            if ticket_id.text == 'META':
                 continue
-        legid = leg[0].text
-        if transp_mode is None:
-            transp_mode = leg.find(".//ns3:PtMode", namespaces=NS).text
-        # if the mode is unknown skip the trip_leg
-        if transp_mode == "unknown":
-            continue
-        # generate the factor values and add them to dictionary
-        tmp_fact_val_dict = {}
-        if not transp_mode in modes_factors_dict:
-            err_print("Transport mode: '" + transp_mode + "' is not defined in probability dictionaries")
-            continue
-        for factor in modes_factors_dict[transp_mode]:
-            if random.uniform(0, 1) < factor_probabilitites_dict[factor]:
-                tmp_fact_val_dict[factor] = generate_value(factors_values_dict, factor)
-        # find assigned travelEpisodeId
-        trip_res = leg.getparent().getparent()
-        if trip_res.tag != "{http://www.vdv.de/trias}TripResult":
-            err_print('Parent of tripleg with legid: ' + legid + ' is not a TripResult!')
-            continue
-        offerid = trip_res.xpath(".//coactive:TravelEpisodeId[text() = '" + legid + "']",
-                                 namespaces=NS)[0]
-        # find extension
-        extension = offerid.getparent().getparent()
-        # check if extension is really an extension
-        if extension.tag != '{http://www.vdv.de/trias}Extension':
-            err_print('Element under legid:' + legid + 'is not an extension!')
-            continue
-        # add generated data to the leg
-        for code, val in tmp_fact_val_dict.items():
-            add_TSP_info(_code=code, _legid=legid, _value=val, _parent_el=extension, nsmap=NS)
+            # extract leg id
+            travel_episode_id = ticket.find(".//coactive:TravelEpisodeId", NS)
+            # throw error if it misses travel episode
+            if travel_episode_id is None:
+                err_print("Travel episode is missing from the ticket with id: " + ticket_id.text)
+                continue
+            leg_id = travel_episode_id.text
+            # fin leg by id
+            leg = trip_result.xpath(".//ns3:LegId[text() = '" + leg_id + "']", namespaces=NS)
+            # check if leg with provided id exists
+            if not leg or leg[0].getparent().tag != "{http://www.vdv.de/trias}TripLeg":
+                err_print("leg with id: " + leg_id + " was not found")
+                continue
+            leg = leg[0].getparent()
+            # obtain transport mode of the leg
+            transport_mode = get_transport_mode(leg)
+            if skip_transport_mode(transport_mode, leg_id):
+                continue
+            factor_gen_dict = {}
+            # check if the data was already generated for the given leg
+            if leg_id in trip_generated_dict:
+                factor_gen_dict = trip_generated_dict[leg_id]
+            # otherwise generate values and add it to the dictionary
+            else:
+                factor_gen_dict = generate_values_to_dict(transport_mode, modes_factors_dict,
+                                                          factor_probabilitites_dict, factors_values_dict)
+                trip_generated_dict[leg_id] = factor_gen_dict
+            extension = ticket.find(".//{http://www.vdv.de/trias}Extension")
+            if extension is None:
+                err_print('Ticket with id: ' + ticket_id.text + ' has not an Extension element!')
+                continue
+            # generate the factors with values into the extension element
+            for code, val in factor_gen_dict.items():
+                add_TSP_info(_code=code, _legid=leg_id, _value=val, _parent_el=extension, nsmap=NS)
 
 
-def generate_examples(path_dict, probabilities=[0.25, 0.5, 0.75], subfolders = True):
+def generate_examples(path_dict, modes_factors_dict, factor_probabilitites_dict, factors_values_dict,
+                      probabilities=None, subfolders=True):
+    if probabilities is None:
+        probabilities = [0.25, 0.5, 0.75]
     for enriched_ver in range(len(probabilities)):
         # change the dictionary probabilities to the provided probabilities
         for key in factor_probabilitites_dict.keys():
@@ -283,7 +309,7 @@ def generate_examples(path_dict, probabilities=[0.25, 0.5, 0.75], subfolders = T
                 change_append_user_id(example_root, '-v-' + str(enriched_ver + 1))
                 # iterate over all tripresults
                 for trip_res in example_root.findall(".//ns3:TripResult", NS):
-                    enrich_trip_result(trip_res)
+                    enrich_tickets_tripresult(trip_res, modes_factors_dict, factor_probabilitites_dict, factors_values_dict)
                 # concatenate the path
                 path = path_dict['generation_dir'] + path_dict['xml_name']
                 # split into subfolders if the path are basic examples
@@ -302,6 +328,11 @@ def generate_examples(path_dict, probabilities=[0.25, 0.5, 0.75], subfolders = T
 # Code to run is below
 #
 
+example_root = etree.parse("../xml_examples/hacon_examples/r2r_example_4.xml", parser=parser).getroot()
+for trip_res in example_root.findall(".//ns3:TripResult", NS):
+    enrich_tickets_tripresult(trip_res, modes_factors_dict, factor_probabilitites_dict, factors_values_dict)
+
+
 examples_dir = "../xml_examples/"
 
 if not path.isdir(examples_dir):
@@ -318,7 +349,8 @@ if not path.isdir(examples_dir):
 
 hacon_examples = {
     'example_path': examples_dir + 'hacon_examples/r2r_example_',
-    'file_num': list(range(1,4)) + list(range(5,10)),
+    'file_num': list(range(1, 10)),
+    # 'file_num': list(range(1,2)),
     'generation_dir': examples_dir + 'hacon_enriched_examples/',
     'xml_name': 'enriched_example_'
 }
@@ -331,15 +363,17 @@ rs_examples = {
     'xml_name': 'rs_tsp_example_'
 }
 
-
-
 factor_probability_values = [0.25, 0.5, 0.75]
 
 # set seed
 random.seed(123)
 
 # generate TSP data
-generate_examples(hacon_examples, factor_probability_values, subfolders=False)
+generate_examples(hacon_examples,
+                  modes_factors_dict=modes_factors_dict,
+                  factor_probabilitites_dict=factor_probabilitites_dict,
+                  factors_values_dict=factors_values_dict,
+                  probabilities=factor_probability_values,
+                  subfolders=False)
 # generate ridesharing TSP data
 # generate_examples(rs_examples, factor_probability_values, subfolders=False)
-
