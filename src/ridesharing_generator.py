@@ -4,14 +4,24 @@
 from lxml import etree
 from copy import deepcopy
 import sys
+from lxml import objectify
 
 ns3_prefix = '{http://www.vdv.de/trias}'
 
-NS = {'coactive': 'http://shift2rail.org/project/coactive', 'ns2': 'http://www.siri.org.uk/siri',
-      'ns3': 'http://www.vdv.de/trias',
+# NS = {'coactive': 'http://shift2rail.org/project/coactive', 'ns2': 'http://www.siri.org.uk/siri',
+#       'ns3': 'http://www.vdv.de/trias',
+#       'ns5': 'http://www.ifopt.org.uk/acsb', 'ns6': 'http://www.ifopt.org.uk/ifopt',
+#       'ns7': 'http://datex2.eu/schema/1_0/1_0', 'xsi': 'http://www.w3.org/2001/XMLSchema-instance'}
+
+new_NS = {'coactive': 'http://shift2rail.org/project/coactive', 'ns2': 'http://www.siri.org.uk/siri',
+      'ns4': 'http://www.vdv.de/trias', '': 'http://shift2rail.org/project/',
       'ns5': 'http://www.ifopt.org.uk/acsb', 'ns6': 'http://www.ifopt.org.uk/ifopt',
       'ns7': 'http://datex2.eu/schema/1_0/1_0', 'xsi': 'http://www.w3.org/2001/XMLSchema-instance'}
 
+new_NS2 = {'coactive': 'http://shift2rail.org/project/coactive', 'ns2': 'http://www.siri.org.uk/siri',
+      'ns4': 'http://www.vdv.de/trias',
+      'ns5': 'http://www.ifopt.org.uk/acsb', 'ns6': 'http://www.ifopt.org.uk/ifopt',
+      'ns7': 'http://datex2.eu/schema/1_0/1_0', 'xsi': 'http://www.w3.org/2001/XMLSchema-instance'}
 
 def err_print(text):
     print(text, file=sys.stderr)
@@ -25,7 +35,7 @@ def create_SubElement(_parent, _tag, attrib={}, _text=None, nsmap=None, **_extra
 
 
 # creates subtree of LegStart or LegEnd with given location reference and location name
-def createStopRefSubtree(leg_el, leg_ref, point_location_text, address=False, nsmap=NS):
+def createStopRefSubtree(leg_el, leg_ref, point_location_text, nsmap, address=False):
     stop_ref = 'StopPointRef'
     if address:  # if it is not an StopPoint but address
         stop_ref = 'AddressRef'
@@ -35,7 +45,7 @@ def createStopRefSubtree(leg_el, leg_ref, point_location_text, address=False, ns
 
 
 # adds leg containing ridesharing data
-def add_rs_leg(trip, rs_dict, ns3_prefix):
+def add_rs_leg(trip, rs_dict, ns3_prefix, NS):
     trip_leg = create_SubElement(trip, _tag=ns3_prefix + 'TripLeg', nsmap=NS)
     create_SubElement(trip_leg, _tag=ns3_prefix + 'LegId', _text=rs_dict['LegId'], nsmap=NS)
     continuous_leg = create_SubElement(trip_leg, _tag=ns3_prefix + 'ContinuousLeg', nsmap=NS)
@@ -48,10 +58,10 @@ def add_rs_leg(trip, rs_dict, ns3_prefix):
                                                  'coactive:LegExtension'}, nsmap=NS)
     create_SubElement(extension_el, _tag='{http://shift2rail.org/project/coactive}' + 'TravelExpertId',
                       _text=rs_dict['TravelExpertId'], nsmap=NS)
-    createStopRefSubtree(continuous_leg[0], rs_dict['LegStartRef'], rs_dict['start_point_loc_text'], address=True)
-    createStopRefSubtree(continuous_leg[1], rs_dict['LegStopRef'], rs_dict['end_point_loc_text'])
+    createStopRefSubtree(continuous_leg[0], rs_dict['LegStartRef'], rs_dict['start_point_loc_text'], NS, address=True)
+    createStopRefSubtree(continuous_leg[1], rs_dict['LegStopRef'], rs_dict['end_point_loc_text'], NS)
 
-    service_el = trip_leg.find('.//ns3:Service', namespaces=NS)
+    service_el = trip_leg.find('.//' + ns3_prefix +'Service', namespaces=NS)
     create_SubElement(service_el, _tag=ns3_prefix + 'IndividualMode', _text='others-drive-car', nsmap=NS)
     sharing_ser_el = create_SubElement(service_el, _tag=ns3_prefix + 'SharingService', nsmap=NS)
 
@@ -65,6 +75,9 @@ def add_rs_leg(trip, rs_dict, ns3_prefix):
     label_el = create_SubElement(info_url_el, _tag=ns3_prefix + 'Label', nsmap=NS)
     create_SubElement(label_el, _tag=ns3_prefix + 'Text', _text=rs_dict['CarModelText'], nsmap=NS)
     create_SubElement(info_url_el, _tag=ns3_prefix + 'Url', _text=rs_dict['CarURL'], nsmap=NS)
+
+
+
 
 
 ###############################################################
@@ -213,7 +226,7 @@ def replace_last_string(text, append_text, split_char='-'):
 #                 instead of "{http://www.vdv.de/trias}" as the xpath is used there
 # @append_text - text to append
 # @element_id - if of the element
-def replace_tag_rs1(trip_result, element_name, append_text='rs1', element_id=None, replace_whole_string=False):
+def replace_tag_rs1(trip_result, element_name, append_text='rs1', element_id=None, replace_whole_string=False, NS={}):
     elem_list = None
     if element_id is None:
         elem_list = trip_result.findall('.//' + element_name, NS)
@@ -246,27 +259,28 @@ def add_offer_item_context(_code=None, _value=None, _parent_el=None, nsmap=None,
 # @offer_id - id of offer
 # @ticket_id - id of ticket
 # @new_rs_leg_id - new id of RS leg
-def modify_trip_rs(trip, leg_id, offer_id, ticket_id, new_rs_leg_id = 'RS-leg-id-1'):
-    # extend trip id
-    replace_tag_rs1(trip, '{http://www.vdv.de/trias}TripId')
-    # change leg id
-    replace_tag_rs1(trip, 'ns3:LegId', append_text=new_rs_leg_id,
-                    element_id=leg_id, replace_whole_string=True)
+def modify_trip_rs(trip, leg_id, offer_id, ticket_id, new_rs_leg_id = 'RS-leg-id-1', ns3_prefix='ns3', NS=None):
 
-    rs_ticket = trip.xpath(".//ns3:TicketId[text() = '" + ticket_id + "']", namespaces=NS)[0].getparent()
+    # extend trip id
+    replace_tag_rs1(trip, ns3_prefix + ':TripId')
+    # change leg id
+    replace_tag_rs1(trip, ns3_prefix + ':LegId', append_text=new_rs_leg_id,
+                    element_id=leg_id, replace_whole_string=True, NS=NS)
+
+    rs_ticket = trip.xpath(".//" + ns3_prefix + ":TicketId[text() = '" + ticket_id + "']", namespaces=NS)[0].getparent()
     # dict: offer id
-    replace_tag_rs1(trip, 'coactive:OfferId', element_id=offer_id)
-    replace_tag_rs1(trip, '{http://shift2rail.org/project/coactive}TripId')
+    replace_tag_rs1(trip, 'coactive:OfferId', element_id=offer_id, NS=NS)
+    replace_tag_rs1(trip, '{http://shift2rail.org/project/coactive}TripId', NS=NS)
     # ticket name
-    replace_tag_rs1(rs_ticket, 'ns3:TicketName', append_text='RideSharing Ticket',
-                    element_id='Standard Ticket', replace_whole_string=True)
-    replace_tag_rs1(rs_ticket, 'ns3:FaresAuthorityRef', append_text='RS authority',
-                    replace_whole_string=True)
-    replace_tag_rs1(rs_ticket, 'ns3:FaresAuthorityText', append_text='RS authority',
-                    replace_whole_string=True)
+    replace_tag_rs1(rs_ticket, ns3_prefix + ':TicketName', append_text='RideSharing Ticket',
+                    element_id='Standard Ticket', replace_whole_string=True, NS=NS)
+    replace_tag_rs1(rs_ticket, ns3_prefix + ':FaresAuthorityRef', append_text='RS authority',
+                    replace_whole_string=True, NS=NS)
+    replace_tag_rs1(rs_ticket, ns3_prefix + ':FaresAuthorityText', append_text='RS authority',
+                    replace_whole_string=True, NS=NS)
     # modify ticketId
-    replace_tag_rs1(rs_ticket, 'ns3:TicketId', append_text='rs1',
-                    element_id=ticket_id)
+    replace_tag_rs1(rs_ticket, ':TicketId', append_text='rs1',
+                    element_id=ticket_id, NS=NS)
 
     # dict: TravelEpisodeId, legid
     travel_episode_id = \
@@ -277,8 +291,7 @@ def modify_trip_rs(trip, leg_id, offer_id, ticket_id, new_rs_leg_id = 'RS-leg-id
         if child.text != leg_id:
             validity_el.remove(child)
     #
-    add_offer_item_context('PASSENGER_REF', 'pasenger_id_1', validity_el.getparent(), NS)
-    # replace only ticket
+    add_offer_item_context('PASSENGER_REF', 'pasenger_id_1', validity_el.getparent(), nsmap=NS)    # replace only ticket
     replace_tag_rs1(rs_ticket, 'coactive:TravelEpisodeId', append_text=new_rs_leg_id,
                     element_id=leg_id, replace_whole_string=True)
     return xmpl_trip
@@ -294,3 +307,62 @@ print(etree.tostring(
     encoding="unicode", pretty_print=True))
 
 
+
+
+
+
+
+
+# bd29a292-26c0-4768-9c94-bb4c5cb123dc
+
+# Define XML parser
+parser = etree.XMLParser(remove_blank_text=True, recover=True, encoding='utf-8')
+
+# Parse the first example
+example_root = etree.parse('./xml_examples/examples_subset_2/r2r_example_5.xml', parser=parser).getroot()
+objectify.deannotate(example_root, cleanup_namespaces=True)
+etree.ElementTree(example_root).write('./xml_examples/examples_subset_2/r2r_5.xml', pretty_print=True,
+                                      xml_declaration=True, encoding='UTF-8', standalone='yes')
+
+rs_dict_h5 = {
+    'LegId': 'RS-leg-id-01',
+    'LegStart': None,
+    'LegEnd': None,
+    'LegStartRef': '@CARRIS@Av. Quinta Grande@Id=18126',
+    'LegStopRef': '@CARRIS@Alfragide - Fap@Id=18109',
+    'start_point_loc_text': 'Av. Quinta Grande',
+    'end_point_loc_text': 'Alfragide - Fap',
+    'Service': None,
+    'TimeWindowStart': '2021-05-31T12:17:51.803166+02:00',
+    'TimeWindowEnd': '2021-05-31T12:25:51.803166+02:00',
+    'Duration': 'PT8M',
+    'TravelExpertId': 'rs_expert',
+    'OperatorRef': 'RSOperator_1',
+    'Name': 'Driver_Joe1',
+    'InfoUrl': None,
+    'CarModelText': 'BMW_X5_xDrive40e',
+    'CarURL': 'https://en.wikipedia.org/wiki/BMW_X5_(F15)#X5_xDrive40e'
+}
+
+xmpl_trip = deepcopy(example_root.xpath(".//ns4:TripId[text() = '197c3d8c-27d2-4c94-84db-ffa2ffd0ae0b']",
+                     namespaces = new_NS2)[0].getparent())
+
+add_rs_leg(xmpl_trip, rs_dict=rs_dict_h5, ns3_prefix=ns3_prefix, NS=new_NS2)
+
+
+objectify.deannotate(xmpl_trip, cleanup_namespaces=True)
+
+print(etree.tostring(xmpl_trip, encoding="unicode", pretty_print=True))
+etree.ElementTree(xmpl_trip).write('./xml_examples/examples_subset_2/r2r_5_trip.xml', pretty_print=True,
+                                      xml_declaration=True, encoding='UTF-8', standalone='yes')
+
+
+
+print(etree.tostring(
+    modify_trip_rs(xmpl_trip,
+                   leg_id = 'bd29a292-26c0-4768-9c94-bb4c5cb123dc',
+                   offer_id= '7da6f4e6-2a98-4d47-9a18-d2801eb4b5f1',
+                   ticket_id= '114178a4-a25b-4bab-a26f-e9edeb572e08',
+                   ns3_prefix = "ns4",
+                   NS = new_NS2),
+    encoding="unicode", pretty_print=True))

@@ -13,81 +13,58 @@ from copy import deepcopy
 from lxml import objectify
 
 ####
-# as first create a dictionary for each transport mode with the available factors
-# then load probablilities from as csv file
-
-# from: https://stackoverflow.com/questions/6740918/creating-a-dictionary-from-a-csv-file
-# import csv
-# reader = csv.reader(open('filename.csv', 'r'))
-# d = {}
-# for row in reader:
-#    k, v = row
-#    d[k] = v
-
+#
 
 NS = {'coactive': 'http://shift2rail.org/project/coactive', 'ns2': 'http://www.siri.org.uk/siri',
       'ns3': 'http://www.vdv.de/trias',
       'ns5': 'http://www.ifopt.org.uk/acsb', 'ns6': 'http://www.ifopt.org.uk/ifopt',
       'ns7': 'http://datex2.eu/schema/1_0/1_0', 'xsi': 'http://www.w3.org/2001/XMLSchema-instance'}
 
-factor_probabilitites_dict = {
-    'likelihood_of_delays': 0.25,
-    'last_minute_changes': 0.25,
-    'frequency_of_service': 0.25,
-    'user_feedback': 0.25,
-    'cleanliness': 0.25,
-    'seating_quality': 0.25,
-    'space_available': 0.25,
-    'silence_area_presence': 0.25,
-    'privacy_level': 0.25,
-    'bike_on_board': 0.25,
-    'business_area_presence': 0.25,
-    'internet_availability': 0.25,
-    'plugs_or_charging_points': 0.25,
-    'number_of_persons_sharing_trip': 0.25,
-    'shared_with_other_passengers': 0.25,
-    'safety_features': 0.25,
-    'vehicle_age': 0.25,
-    'passenger_feedback': 0.25,
-    'certified_driver': 0.25,
-    'driver_license_issue_date': 0.25,
-    'repeated_trip': 0.25
-}
 
+# list of available factors
+factor_list = ['likelihood_of_delays', 'last_minute_changes', 'frequency_of_service', 'user_feedback', 'cleanliness',
+               'seating_quality', 'space_available', 'silence_area_presence', 'privacy_level', 'bike_on_board',
+               'business_area_presence', 'internet_availability', 'plugs_or_charging_points',
+               'number_of_persons_sharing_trip', 'shared_with_other_passengers', 'safety_features',
+               'vehicle_age', 'passenger_feedback', 'certified_driver', 'driver_license_issue_date', 'repeated_trip',
+               'ride_smoothness']
+
+# dictionary of factor probabilities
+factor_probabilities_dict = dict.fromkeys(factor_list, 0.25)
+
+# all modes, except modes like walking and cycling which were not enriched as they do not have any attributes
+all_modes = 'all'
+public_transport = ['bus', 'tram', 'rail', 'metro', 'air', 'urbanRail']
+ridesharing = 'others-drive-car'
+
+# dic
 factors_modes_dict = {
-    'likelihood_of_delays': 'all',
-    'last_minute_changes': ['bus', 'tram', 'rail', 'metro', 'air', 'urbanRail', 'others-drive-car'],
-    'frequency_of_service': ['bus', 'tram', 'rail', 'metro', 'air', 'urbanRail', 'others-drive-car'],
-    'user_feedback': 'all',
-    'cleanliness': ['bus', 'tram', 'rail', 'metro', 'air', 'urbanRail', 'others-drive-car'],
-    'seating_quality': 'all',
-    'space_available': 'all',
+    'likelihood_of_delays': all_modes,
+    'last_minute_changes': public_transport + [ridesharing],
+    'frequency_of_service': public_transport,
+    'user_feedback': all_modes,
+    'cleanliness': public_transport + [ridesharing],
+    'seating_quality': all_modes,
+    'space_available': all_modes,
     'silence_area_presence': 'rail',
-    'privacy_level': 'all',
-    'bike_on_board': ['bus', 'tram', 'rail', 'metro', 'air', 'urbanRail', 'others-drive-car'],
+    'privacy_level': all_modes,
+    'bike_on_board': public_transport + [ridesharing],
     'business_area_presence': ['rail', 'air'],
-    'internet_availability': ['bus', 'tram', 'rail', 'metro', 'air', 'urbanRail', 'others-drive-car'],
-    'plugs_or_charging_points': ['bus', 'tram', 'rail', 'metro', 'air', 'urbanRail', 'others-drive-car'],
-    'number_of_persons_sharing_trip': 'others-drive-car',
-    'shared_with_other_passengers': 'others-drive-car',
-    'safety_features': ['bus', 'tram', 'rail', 'metro', 'air', 'urbanRail', 'others-drive-car'],
-    'vehicle_age': 'others-drive-car',
-    'passenger_feedback': ['bus', 'tram', 'rail', 'metro', 'air', 'urbanRail', 'others-drive-car'],
-    'certified_driver': 'others-drive-car',
-    'driver_license_issue_date': 'others-drive-car',
-    'repeated_trip': 'others-drive-car'
+    'internet_availability': public_transport + [ridesharing],
+    'plugs_or_charging_points': public_transport + [ridesharing],
+    'number_of_persons_sharing_trip': ridesharing,
+    'shared_with_other_passengers': ridesharing,
+    'safety_features': public_transport + [ridesharing],
+    'vehicle_age': ridesharing,
+    'passenger_feedback': public_transport + [ridesharing],
+    'certified_driver': ridesharing,
+    'driver_license_issue_date': ridesharing,
+    'repeated_trip': ridesharing,
+    'ride_smoothness': ridesharing
 }
 
 # dictionary for factors_modes_dict invertion
-modes_factors_dict = {
-    'bus': [],
-    'tram': [],
-    'rail': [],
-    'metro': [],
-    'air': [],
-    'urbanRail': [],
-    'others-drive-car': []
-}
+modes_factors_dict = {k: [] for k in public_transport + [ridesharing]}
 
 # invert the previous dictionary factors_modes_dict dictionary
 for k, v in factors_modes_dict.items():
@@ -100,28 +77,35 @@ for k, v in factors_modes_dict.items():
         for tm in v:
             modes_factors_dict[tm].append(k)
 
+# predefined domain values
+real_0_1 = ['real', 0, 1]  # <0, 1>
+binary = ['int', 0, 1]  # 0 or 1
+int_1_20 = ['int', 1, 20]  # range 1 to 20
+stars_5 = ['real', 1, 5]  # 5 stairs
+
 factors_values_dict = {
-    'likelihood_of_delays': ['real', 0, 1],
-    'last_minute_changes': ['real', 0, 1],
-    'frequency_of_service': ['int', 1, 20],
-    'user_feedback': ['real', 1, 5],
-    'cleanliness': ['real', 1, 5],
-    'seating_quality': ['real', 1, 5],
-    'space_available': ['real', 1, 5],
-    'silence_area_presence': ['int', 0, 1],
-    'privacy_level': ['real', 1, 5],
-    'bike_on_board': ['int', 0, 1],
-    'business_area_presence': ['int', 0, 1],
-    'internet_availability': ['int', 0, 1],
-    'plugs_or_charging_points': ['int', 0, 1],
-    'number_of_persons_sharing_trip': ['int', 1, 20],
-    'shared_with_other_passengers': ['int', 0, 1],
-    'safety_features': ['real', 1, 5],
+    'likelihood_of_delays': real_0_1,
+    'last_minute_changes': real_0_1,
+    'frequency_of_service': int_1_20,
+    'user_feedback': stars_5,
+    'cleanliness': stars_5,
+    'seating_quality': stars_5,
+    'space_available': stars_5,
+    'silence_area_presence': binary,
+    'privacy_level': stars_5,
+    'bike_on_board': binary,
+    'business_area_presence': binary,
+    'internet_availability': binary,
+    'plugs_or_charging_points': binary,
+    'number_of_persons_sharing_trip': int_1_20,
+    'shared_with_other_passengers': binary,
+    'safety_features': stars_5,
     'vehicle_age': ['int', 0, 25],
-    'passenger_feedback': ['real', 1, 5],
-    'certified_driver': ['int', 0, 1],
+    'passenger_feedback': stars_5,
+    'certified_driver': binary,
     'driver_license_issue_date': ['date', '1960-1-1T00:00:00.000Z', '2020-1-1T00:00:00.000Z'],
-    'repeated_trip': ['int', 0, 1]
+    'repeated_trip': binary,
+    'ride_smoothness': stars_5
 }
 
 parser = etree.XMLParser(remove_blank_text=True, recover=True, encoding='utf-8')
@@ -217,11 +201,11 @@ def get_transport_mode(leg):
 
 
 # returns dictionary of generated values for the given transport mode
-def generate_values_to_dict(transp_mode, modes_factors_dict, factor_probabilitites_dict, factors_values_dict):
+def generate_values_to_dict(transp_mode, modes_factors_dict, factor_probabilities_dict, factors_values_dict):
     # generate the factor values and add them to dictionary
     tmp_fact_val_dict = {}
     for factor in modes_factors_dict[transp_mode]:
-        if random.uniform(0, 1) < factor_probabilitites_dict[factor]:
+        if random.uniform(0, 1) < factor_probabilities_dict[factor]:
             tmp_fact_val_dict[factor] = generate_value(factors_values_dict, factor)
     return tmp_fact_val_dict
 
@@ -237,13 +221,13 @@ def skip_transport_mode(transport_mode, leg_id):
         return True
     # if the mode is undefined
     elif transport_mode not in modes_factors_dict:
-        err_print("Transport mode " + transport_mode + " is not defined at leg id: " + leg_id )
+        err_print("Transport mode " + transport_mode + " is not defined at leg id: " + leg_id)
         return True
 
 
 # enriches the trip_result based on the provided dictionaries
 # if the legs reoccur in tickes, the generated values are the same
-def enrich_tickets_tripresult(trip_result, modes_factors_dict, factor_probabilitites_dict, factors_values_dict):
+def enrich_tickets_tripresult(trip_result, modes_factors_dict, factor_probabilities_dict, factors_values_dict):
     # dictionary storing probabilities for reoccuring legs in tickets
     trip_generated_dict = {}
     for trip_fare in trip_result.findall('.//ns3:TripFares', NS):
@@ -280,7 +264,7 @@ def enrich_tickets_tripresult(trip_result, modes_factors_dict, factor_probabilit
             # otherwise generate values and add it to the dictionary
             else:
                 factor_gen_dict = generate_values_to_dict(transport_mode, modes_factors_dict,
-                                                          factor_probabilitites_dict, factors_values_dict)
+                                                          factor_probabilities_dict, factors_values_dict)
                 trip_generated_dict[leg_id] = factor_gen_dict
             extension = ticket.find(".//{http://www.vdv.de/trias}Extension")
             if extension is None:
@@ -291,14 +275,16 @@ def enrich_tickets_tripresult(trip_result, modes_factors_dict, factor_probabilit
                 add_TSP_info(_code=code, _legid=leg_id, _value=val, _parent_el=extension, nsmap=NS)
 
 
-def generate_examples(path_dict, modes_factors_dict, factor_probabilitites_dict, factors_values_dict,
-                      probabilities=None, subfolders=True):
+def generate_examples(path_dict, modes_factors_dict, factor_probabilities_dict, factors_values_dict,
+                      probabilities=None, subfolders=True, prob_codes = None):
     if probabilities is None:
         probabilities = [0.25, 0.5, 0.75]
+    if prob_codes is None:
+        prob_codes = ['025', '050', '075']
     for enriched_ver in range(len(probabilities)):
         # change the dictionary probabilities to the provided probabilities
-        for key in factor_probabilitites_dict.keys():
-            factor_probabilitites_dict[key] = probabilities[enriched_ver]
+        for key in factor_probabilities_dict.keys():
+            factor_probabilities_dict[key] = probabilities[enriched_ver]
         # iterate over all the provided file numbers
         for i in path_dict['file_num']:
             # concatenate the full path to the file
@@ -309,7 +295,8 @@ def generate_examples(path_dict, modes_factors_dict, factor_probabilitites_dict,
                 change_append_user_id(example_root, '-v-' + str(enriched_ver + 1))
                 # iterate over all tripresults
                 for trip_res in example_root.findall(".//ns3:TripResult", NS):
-                    enrich_tickets_tripresult(trip_res, modes_factors_dict, factor_probabilitites_dict, factors_values_dict)
+                    enrich_tickets_tripresult(trip_res, modes_factors_dict, factor_probabilities_dict,
+                                              factors_values_dict)
                 # concatenate the path
                 path = path_dict['generation_dir'] + path_dict['xml_name']
                 # split into subfolders if the path are basic examples
@@ -317,7 +304,7 @@ def generate_examples(path_dict, modes_factors_dict, factor_probabilitites_dict,
                     path = path_dict['generation_dir'] + str(i) + "/" + path_dict['xml_name']
                 objectify.deannotate(example_root, cleanup_namespaces=True)
                 # write the tree into XML with concatenating the name
-                etree.ElementTree(example_root).write(path + str(i) + '_v_' + str(enriched_ver + 1) + '.xml',
+                etree.ElementTree(example_root).write(path + "no_" + str(i) + '_tsp_' + prob_codes[enriched_ver] + '.xml',
                                                       pretty_print=True, xml_declaration=True, encoding='UTF-8',
                                                       standalone='yes')
             else:
@@ -328,10 +315,9 @@ def generate_examples(path_dict, modes_factors_dict, factor_probabilitites_dict,
 # Code to run is below
 #
 
-example_root = etree.parse("../xml_examples/hacon_examples/r2r_example_4.xml", parser=parser).getroot()
-for trip_res in example_root.findall(".//ns3:TripResult", NS):
-    enrich_tickets_tripresult(trip_res, modes_factors_dict, factor_probabilitites_dict, factors_values_dict)
-
+# example_root = etree.parse("../xml_examples/examples_subset_1/r2r_example_4.xml", parser=parser).getroot()
+# for trip_res in example_root.findall(".//ns3:TripResult", NS):
+#     enrich_tickets_tripresult(trip_res, modes_factors_dict, factor_probabilities_dict, factors_values_dict)
 
 examples_dir = "../xml_examples/"
 
@@ -340,6 +326,7 @@ if not path.isdir(examples_dir):
     exit()
 
 # for all examples
+# set subfolder to true
 # all_examples = {
 #     'example_path': examples_dir + 'basic_examples/sing_mob_exmpl_',
 #     'file_num': list(range(0, 11)),
@@ -348,32 +335,46 @@ if not path.isdir(examples_dir):
 # }
 
 hacon_examples = {
-    'example_path': examples_dir + 'hacon_examples/r2r_example_',
-    'file_num': list(range(1, 10)),
-    # 'file_num': list(range(1,2)),
-    'generation_dir': examples_dir + 'hacon_enriched_examples/',
-    'xml_name': 'enriched_example_'
+    'example_path': examples_dir + 'examples_subset_2/r2r_example_',
+    'file_num': list(range(1, 11)),
+    'generation_dir': examples_dir + 'enriched_examples_subset_2/',
+    'xml_name': 'subset_2_'
 }
 
-# for examples with RS data
-rs_examples = {
-    'example_path': examples_dir + 'RS_examples/rs_exmpl_',
-    'file_num': [1, 3, 10],
-    'generation_dir': examples_dir + 'RS_examples_TSP/',
-    'xml_name': 'rs_tsp_example_'
+
+# subset_1_no_12_tsp_025
+#
+hacon_examples = {
+    'example_path': examples_dir + 'examples_subset_1/r2r_example_',
+    'file_num': [3, 9, 12, 18, 21, 22, 26, 37, 44, 50],
+    'generation_dir': examples_dir + 'enriched_examples_subset_1/',
+    'xml_name': 'subset_1_'
 }
+
+# examples_subset_1 = {
+#     'example_path': examples_dir + 'hcn/r2r_',
+#     'file_num': [5],
+#     'generation_dir': examples_dir + 'hcn/',
+#     'xml_name': 'hcn_rs_'
+# }
+
+
+
 
 factor_probability_values = [0.25, 0.5, 0.75]
 
 # set seed
 random.seed(123)
 
-# generate TSP data
 generate_examples(hacon_examples,
                   modes_factors_dict=modes_factors_dict,
-                  factor_probabilitites_dict=factor_probabilitites_dict,
+                  factor_probabilities_dict=factor_probabilities_dict,
                   factors_values_dict=factors_values_dict,
                   probabilities=factor_probability_values,
                   subfolders=False)
+
+
+# generate TSP data
+
 # generate ridesharing TSP data
 # generate_examples(rs_examples, factor_probability_values, subfolders=False)
