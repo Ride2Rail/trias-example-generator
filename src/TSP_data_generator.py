@@ -66,7 +66,7 @@ factors_modes_dict = {
 # dictionary for factors_modes_dict invertion
 modes_factors_dict = {k: [] for k in public_transport + [ridesharing]}
 
-# invert the previous dictionary factors_modes_dict dictionary
+# invert the factors_modes_dict dictionary, so for each transport mode are as a value parameters provided
 for k, v in factors_modes_dict.items():
     if v == 'all':
         for tm in modes_factors_dict.keys():
@@ -132,6 +132,7 @@ def add_TSP_info(_code=None, _legid=None, _value=None, _parent_el=None, nsmap=No
         _code = _code + ":" + str(_legid)
     create_SubElement(parent_elem, "{http://shift2rail.org/project/coactive}Code", _text=_code, nsmap=nsmap)
     create_SubElement(parent_elem, "{http://shift2rail.org/project/coactive}Value", _text=str(_value), nsmap=nsmap)
+    objectify.deannotate(parent_elem, cleanup_namespaces=True)
     return parent_elem
 
 
@@ -302,7 +303,6 @@ def generate_examples(path_dict, modes_factors_dict, factor_probabilities_dict, 
                 # split into subfolders if the path are basic examples
                 if subfolders:
                     path = path_dict['generation_dir'] + str(i) + "/" + path_dict['xml_name']
-                objectify.deannotate(example_root, cleanup_namespaces=True)
                 # write the tree into XML with concatenating the name
                 etree.ElementTree(example_root).write(path + "no_" + str(i) + '_tsp_' + prob_codes[enriched_ver] + '.xml',
                                                       pretty_print=True, xml_declaration=True, encoding='UTF-8',
@@ -325,40 +325,30 @@ if not path.isdir(examples_dir):
     err_print(examples_dir + " is not a valid directory! Please create a valid directory or change its path.")
     exit()
 
-# for all examples
-# set subfolder to true
-# all_examples = {
-#     'example_path': examples_dir + 'basic_examples/sing_mob_exmpl_',
-#     'file_num': list(range(0, 11)),
-#     'generation_dir': examples_dir + 'basic_examples_TSP/example_',
-#     'xml_name': 'enriched_example_'
-# }
-
-hacon_examples = {
-    'example_path': examples_dir + 'examples_subset_2/r2r_example_',
-    'file_num': list(range(1, 11)),
-    'generation_dir': examples_dir + 'enriched_examples_subset_2/',
-    'xml_name': 'subset_2_'
-}
-
-
-# subset_1_no_12_tsp_025
 #
 hacon_examples = {
-    'example_path': examples_dir + 'examples_subset_1/r2r_example_',
+    'example_path': examples_dir + 'examples_subset_1/subset_1_no_',
     'file_num': [3, 9, 12, 18, 21, 22, 26, 37, 44, 50],
     'generation_dir': examples_dir + 'enriched_examples_subset_1/',
     'xml_name': 'subset_1_'
 }
 
-# examples_subset_1 = {
-#     'example_path': examples_dir + 'hcn/r2r_',
-#     'file_num': [5],
-#     'generation_dir': examples_dir + 'hcn/',
-#     'xml_name': 'hcn_rs_'
+
+# hacon_examples = {
+#     'example_path': examples_dir + 'examples_subset_2/subset_2_no_',
+#     'file_num': list(range(1, 11)),
+#     'generation_dir': examples_dir + 'enriched_examples_subset_2/',
+#     'xml_name': 'subset_2_'
 # }
 
+## Ridesharing examples
 
+# hacon_examples = {
+#     'example_path': examples_dir + 'examples_subset_3/subset_3_no_',
+#     'file_num': [3, 5, 9],
+#     'generation_dir': examples_dir + 'enriched_examples_subset_3/',
+#     'xml_name': 'hcn_rs_'
+# }
 
 
 factor_probability_values = [0.25, 0.5, 0.75]
@@ -373,8 +363,3 @@ generate_examples(hacon_examples,
                   probabilities=factor_probability_values,
                   subfolders=False)
 
-
-# generate TSP data
-
-# generate ridesharing TSP data
-# generate_examples(rs_examples, factor_probability_values, subfolders=False)

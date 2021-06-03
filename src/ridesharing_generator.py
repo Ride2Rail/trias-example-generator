@@ -319,9 +319,9 @@ print(etree.tostring(
 parser = etree.XMLParser(remove_blank_text=True, recover=True, encoding='utf-8')
 
 # Parse the first example
-example_root = etree.parse('./xml_examples/examples_subset_2/r2r_example_5.xml', parser=parser).getroot()
+example_root = etree.parse('./xml_examples/examples_subset_2/subset_2_no_5.xml', parser=parser).getroot()
 objectify.deannotate(example_root, cleanup_namespaces=True)
-etree.ElementTree(example_root).write('./xml_examples/examples_subset_2/r2r_5.xml', pretty_print=True,
+etree.ElementTree(example_root).write('./xml_examples/examples_subset_2/subset_3_no_5.xml', pretty_print=True,
                                       xml_declaration=True, encoding='UTF-8', standalone='yes')
 
 rs_dict_h5 = {
@@ -357,12 +357,76 @@ etree.ElementTree(xmpl_trip).write('./xml_examples/examples_subset_2/r2r_5_trip.
                                       xml_declaration=True, encoding='UTF-8', standalone='yes')
 
 
+# Parse the first example
+example_root = etree.parse('./xml_examples/examples_subset_2/subset_2_no_3.xml', parser=parser).getroot()
+etree.ElementTree(example_root).write('./xml_examples/examples_subset_3/subset_3_no_3.xml', pretty_print=True,
+                                      xml_declaration=True, encoding='UTF-8', standalone='yes')
 
-print(etree.tostring(
-    modify_trip_rs(xmpl_trip,
-                   leg_id = 'bd29a292-26c0-4768-9c94-bb4c5cb123dc',
-                   offer_id= '7da6f4e6-2a98-4d47-9a18-d2801eb4b5f1',
-                   ticket_id= '114178a4-a25b-4bab-a26f-e9edeb572e08',
-                   ns3_prefix = "ns4",
-                   NS = new_NS2),
-    encoding="unicode", pretty_print=True))
+rs_dict_h3 = {
+    'LegId': 'RS-leg-id-03',
+    'LegStart': None,
+    'LegEnd': None,
+    'LegStartRef': '@CARRIS@R. Gen. Fernando Tamagnini@Id=3008',
+    'LegStopRef': '@CARRIS@Colégio Militar (Metro)@Id=10813',
+    'start_point_loc_text': 'R. Gen. Fernando Tamagnini',
+    'end_point_loc_text': 'Colégio Militar (Metro)',
+    'Service': None,
+    'TimeWindowStart': '2021-05-31T12:21:00+02:00',
+    'TimeWindowEnd': '2021-05-31T12:41:00+02:00',
+    'Duration': 'PT20M',
+    'TravelExpertId': 'rs_expert',
+    'OperatorRef': 'RSOperator_1',
+    'Name': 'Driver_Joe1',
+    'InfoUrl': None,
+    'CarModelText': 'BMW_X5_xDrive40e',
+    'CarURL': 'https://en.wikipedia.org/wiki/BMW_X5_(F15)#X5_xDrive40e'
+}
+
+xmpl_trip = deepcopy(example_root.xpath(".//ns4:TripId[text() = '0a332574-769e-4902-8d02-941120d353ad']",
+                     namespaces = new_NS2)[0].getparent())
+
+add_rs_leg(xmpl_trip, rs_dict=rs_dict_h3, ns3_prefix=ns3_prefix, NS=new_NS2)
+
+
+# objectify.deannotate(xmpl_trip, cleanup_namespaces=True)
+
+print(etree.tostring(xmpl_trip, encoding="unicode", pretty_print=True))
+
+
+
+# Parse the first example
+example_root = etree.parse('./xml_examples/examples_subset_2/subset_2_no_9.xml', parser=parser).getroot()
+etree.ElementTree(example_root).write('./xml_examples/examples_subset_3/subset_3_no_9.xml', pretty_print=True,
+                                      xml_declaration=True, encoding='UTF-8', standalone='yes')
+
+rs_dict_h9 = {
+    'LegId': 'RS-leg-id-09',
+    'LegStart': None,
+    'LegEnd': None,
+    'LegStartRef': '@CARRIS@Alto Dos Moínhos@Id=21302',
+    'LegStopRef': '@CARRIS@Rua Carolina Michaelis@Id=10831',
+    'start_point_loc_text': 'Alto Dos Moínhos',
+    'end_point_loc_text': 'Rua Carolina Michaelis',
+    'Service': None,
+    'TimeWindowStart': '2021-05-31T12:15:03.410675+02:00',
+    'TimeWindowEnd': '2021-05-31T12:27:03.410675+02:00',
+    'Duration': 'PT12M',
+    'TravelExpertId': 'rs_expert',
+    'OperatorRef': 'RSOperator_1',
+    'Name': 'Driver_Joe1',
+    'InfoUrl': None,
+    'CarModelText': 'BMW_X5_xDrive40e',
+    'CarURL': 'https://en.wikipedia.org/wiki/BMW_X5_(F15)#X5_xDrive40e'
+}
+
+xmpl_trip = deepcopy(example_root.xpath(".//ns4:TripId[text() = 'e65bbb0c-cfab-4869-a5cc-f730fc4c880b']",
+                     namespaces = new_NS2)[0].getparent())
+
+add_rs_leg(xmpl_trip, rs_dict=rs_dict_h3, ns3_prefix=ns3_prefix, NS=new_NS2)
+
+
+# objectify.deannotate(xmpl_trip, cleanup_namespaces=True)
+
+print(etree.tostring(xmpl_trip, encoding="unicode", pretty_print=True))
+etree.ElementTree(xmpl_trip).write('./xml_examples/examples_subset_2/r2r_5_trip.xml', pretty_print=True,
+                                      xml_declaration=True, encoding='UTF-8', standalone='yes')
