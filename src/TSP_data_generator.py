@@ -326,29 +326,29 @@ if not path.isdir(examples_dir):
     exit()
 
 #
-hacon_examples = {
-    'example_path': examples_dir + 'examples_subset_1/subset_1_no_',
-    'file_num': [3, 9, 12, 18, 21, 22, 26, 37, 44, 50],
-    'generation_dir': examples_dir + 'enriched_examples_subset_1/',
-    'xml_name': 'subset_1_'
-}
+# hacon_examples = {
+#     'example_path': examples_dir + 'subset_1/subset_1_no_',
+#     'file_num': [3, 9, 12, 18, 21, 22, 26, 37, 44, 50],
+#     'generation_dir': examples_dir + 'enriched_subset_1/',
+#     'xml_name': 'subset_1_'
+# }
 
 
 # hacon_examples = {
-#     'example_path': examples_dir + 'examples_subset_2/subset_2_no_',
+#     'example_path': examples_dir + 'subset_2/subset_2_no_',
 #     'file_num': list(range(1, 11)),
-#     'generation_dir': examples_dir + 'enriched_examples_subset_2/',
+#     'generation_dir': examples_dir + 'enriched_subset_2/',
 #     'xml_name': 'subset_2_'
 # }
 
 ## Ridesharing examples
 
-# hacon_examples = {
-#     'example_path': examples_dir + 'examples_subset_3/subset_3_no_',
-#     'file_num': [3, 5, 9],
-#     'generation_dir': examples_dir + 'enriched_examples_subset_3/',
-#     'xml_name': 'hcn_rs_'
-# }
+hacon_examples = {
+    'example_path': examples_dir + 'subset_3/subset_3_no_',
+    'file_num': [3, 5, 9],
+    'generation_dir': examples_dir + 'enriched_subset_3/',
+    'xml_name': 'subset_3_'
+}
 
 
 factor_probability_values = [0.25, 0.5, 0.75]

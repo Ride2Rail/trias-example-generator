@@ -319,9 +319,9 @@ print(etree.tostring(
 parser = etree.XMLParser(remove_blank_text=True, recover=True, encoding='utf-8')
 
 # Parse the first example
-example_root = etree.parse('./xml_examples/examples_subset_2/subset_2_no_5.xml', parser=parser).getroot()
+example_root = etree.parse('./xml_examples/subset_2/subset_2_no_5.xml', parser=parser).getroot()
 objectify.deannotate(example_root, cleanup_namespaces=True)
-etree.ElementTree(example_root).write('./xml_examples/examples_subset_2/subset_3_no_5.xml', pretty_print=True,
+etree.ElementTree(example_root).write('./xml_examples/subset_2/subset_3_no_5.xml', pretty_print=True,
                                       xml_declaration=True, encoding='UTF-8', standalone='yes')
 
 rs_dict_h5 = {
@@ -353,14 +353,14 @@ add_rs_leg(xmpl_trip, rs_dict=rs_dict_h5, ns3_prefix=ns3_prefix, NS=new_NS2)
 objectify.deannotate(xmpl_trip, cleanup_namespaces=True)
 
 print(etree.tostring(xmpl_trip, encoding="unicode", pretty_print=True))
-etree.ElementTree(xmpl_trip).write('./xml_examples/examples_subset_2/r2r_5_trip.xml', pretty_print=True,
+etree.ElementTree(xmpl_trip).write('./xml_examples/subset_2/r2r_5_trip.xml', pretty_print=True,
                                       xml_declaration=True, encoding='UTF-8', standalone='yes')
 
 
 # Parse the first example
-example_root = etree.parse('./xml_examples/examples_subset_2/subset_2_no_3.xml', parser=parser).getroot()
-etree.ElementTree(example_root).write('./xml_examples/examples_subset_3/subset_3_no_3.xml', pretty_print=True,
-                                      xml_declaration=True, encoding='UTF-8', standalone='yes')
+example_root = etree.parse('./xml_examples/subset_2/subset_2_no_3.xml', parser=parser).getroot()
+# etree.ElementTree(example_root).write('./xml_examples/subset_3/subset_3_no_3.xml', pretty_print=True,
+#                                       xml_declaration=True, encoding='UTF-8', standalone='yes')
 
 rs_dict_h3 = {
     'LegId': 'RS-leg-id-03',
@@ -395,9 +395,9 @@ print(etree.tostring(xmpl_trip, encoding="unicode", pretty_print=True))
 
 
 # Parse the first example
-example_root = etree.parse('./xml_examples/examples_subset_2/subset_2_no_9.xml', parser=parser).getroot()
-etree.ElementTree(example_root).write('./xml_examples/examples_subset_3/subset_3_no_9.xml', pretty_print=True,
-                                      xml_declaration=True, encoding='UTF-8', standalone='yes')
+example_root = etree.parse('./xml_examples/subset_2/subset_2_no_9.xml', parser=parser).getroot()
+# etree.ElementTree(example_root).write('./xml_examples/subset_3/subset_3_no_9.xml', pretty_print=True,
+#                                       xml_declaration=True, encoding='UTF-8', standalone='yes')
 
 rs_dict_h9 = {
     'LegId': 'RS-leg-id-09',
@@ -428,5 +428,3 @@ add_rs_leg(xmpl_trip, rs_dict=rs_dict_h3, ns3_prefix=ns3_prefix, NS=new_NS2)
 # objectify.deannotate(xmpl_trip, cleanup_namespaces=True)
 
 print(etree.tostring(xmpl_trip, encoding="unicode", pretty_print=True))
-etree.ElementTree(xmpl_trip).write('./xml_examples/examples_subset_2/r2r_5_trip.xml', pretty_print=True,
-                                      xml_declaration=True, encoding='UTF-8', standalone='yes')
