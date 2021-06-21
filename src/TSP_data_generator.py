@@ -25,7 +25,7 @@ NS = {'coactive': 'http://shift2rail.org/project/coactive', 'ns2': 'http://www.s
 factor_list = ['likelihood_of_delays', 'last_minute_changes', 'frequency_of_service', 'user_feedback', 'cleanliness',
                'seating_quality', 'space_available', 'silence_area_presence', 'privacy_level', 'bike_on_board',
                'business_area_presence', 'internet_availability', 'plugs_or_charging_points',
-               'number_of_persons_sharing_trip', 'shared_with_other_passengers', 'safety_features',
+               'number_of_persons_sharing_trip', 'shared_with_other_passengers','can_share_cost', 'safety_features',
                'vehicle_age', 'passenger_feedback', 'certified_driver', 'driver_license_issue_date', 'repeated_trip',
                'ride_smoothness']
 
@@ -54,6 +54,7 @@ factors_modes_dict = {
     'plugs_or_charging_points': public_transport + [ridesharing],
     'number_of_persons_sharing_trip': ridesharing,
     'shared_with_other_passengers': ridesharing,
+    'can_share_cost': ridesharing,
     'safety_features': public_transport + [ridesharing],
     'vehicle_age': ridesharing,
     'passenger_feedback': public_transport + [ridesharing],
@@ -99,6 +100,7 @@ factors_values_dict = {
     'plugs_or_charging_points': binary,
     'number_of_persons_sharing_trip': int_1_20,
     'shared_with_other_passengers': binary,
+    'can_share_cost ': binary,
     'safety_features': stars_5,
     'vehicle_age': ['int', 0, 25],
     'passenger_feedback': stars_5,
